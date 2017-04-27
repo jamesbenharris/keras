@@ -3245,6 +3245,8 @@ def pool2d(x, pool_size, strides=(1, 1),
         x = tf.nn.max_pool(x, pool_size, strides, padding=padding)
     elif pool_mode == 'avg':
         x = tf.nn.avg_pool(x, pool_size, strides, padding=padding)
+    elif pool_mode == 'fractionalMax':
+        x = tf.nn.fractional_max_pool(x, pool_size, overlapping=True)
     else:
         raise ValueError('Invalid pooling mode:', pool_mode)
 
