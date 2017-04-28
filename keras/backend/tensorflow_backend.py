@@ -43,14 +43,6 @@ _MANUAL_VAR_INIT = False
 
 
 def get_uid(prefix=''):
-    """Get the uid for the default graph.
-
-    # Arguments
-        prefix: An optional prefix of the graph.
-
-    # Returns
-        A unique identifier for the graph.
-    """
     global _GRAPH_UID_DICTS
     graph = tf.get_default_graph()
     if graph not in _GRAPH_UID_DICTS:
@@ -60,7 +52,6 @@ def get_uid(prefix=''):
 
 
 def reset_uids():
-    """Reset graph identifiers."""
     global _GRAPH_UID_DICTS
     _GRAPH_UID_DICTS = {}
 
@@ -76,7 +67,6 @@ def clear_session():
     reset_uids()
     _SESSION = None
     phase = tf.placeholder(dtype='bool', name='keras_learning_phase')
-    _GRAPH_LEARNING_PHASES = {}
     _GRAPH_LEARNING_PHASES[tf.get_default_graph()] = phase
 
 
@@ -160,8 +150,7 @@ def get_session():
             _SESSION = tf.Session(config=config)
         session = _SESSION
     if not _MANUAL_VAR_INIT:
-        with session.graph.as_default():
-            _initialize_variables()
+        _initialize_variables()
     return session
 
 
@@ -178,17 +167,6 @@ def set_session(session):
 # VARIABLE MANIPULATION
 
 def _convert_string_dtype(dtype):
-    """Get the type from a string.
-
-    # Arguments
-        dtype: A string representation of a type.
-
-    # Returns:
-        The type requested.
-
-    # Raises
-        ValueError if `dtype` is not supported
-    """
     if dtype == 'float16':
         return tf.float16
     if dtype == 'float32':
@@ -210,15 +188,6 @@ def _convert_string_dtype(dtype):
 
 
 def _to_tensor(x, dtype):
-    """Convert the input `x` to a tensor of type `dtype`.
-
-    # Arguments
-        x: An object to be converted (numpy array, list, tensors).
-        dtype: The destination type.
-
-    # Returns
-        A tensor.
-    """
     x = tf.convert_to_tensor(x)
     if x.dtype != dtype:
         x = tf.cast(x, dtype)
@@ -338,17 +307,6 @@ def _initialize_variables():
 
 
 def constant(value, dtype=None, shape=None, name=None):
-    """Creates a constant tensor.
-
-    # Arguments
-        value: A constant value (or list)
-        dtype: The type of the elements of the resulting tensor.
-        shape: Optional dimensions of resulting tensor.
-        name: Optional name for the tensor.
-
-    # Returns
-        A Constant Tensor.
-    """
     if dtype is None:
         dtype = floatx()
     return tf.constant(value, dtype=dtype, shape=shape, name=name)
@@ -666,18 +624,6 @@ def ones_like(x, dtype=None, name=None):
     return tf.ones_like(x, dtype=dtype, name=name)
 
 
-def identity(x):
-    """Returns a tensor with the same content as the input tensor.
-
-    # Arguments
-        x: The input tensor.
-
-    # Returns
-        A tensor of the same shape, type and content.
-    """
-    return tf.identity(x)
-
-
 def random_uniform_variable(shape, low, high, dtype=None,
                             name=None, seed=None):
     """Instantiates a variable with values drawn from a uniform distribution.
@@ -813,54 +759,18 @@ def cast(x, dtype):
 
 
 def update(x, new_x):
-    """Update the value of `x` to `new_x`.
-
-    # Arguments
-        x: A Variable.
-        new_x: A tensor of same shape as `x`.
-
-    # Returns
-        The variable `x` updated.
-    """
     return tf.assign(x, new_x)
 
 
 def update_add(x, increment):
-    """Update the value of `x` by adding `increment`.
-
-        # Arguments
-            x: A Variable.
-            increment: A tensor of same shape as `x`.
-
-        # Returns
-            The variable `x` updated.
-        """
     return tf.assign_add(x, increment)
 
 
 def update_sub(x, decrement):
-    """Update the value of `x` by subtracting `decrement`.
-
-        # Arguments
-            x: A Variable.
-            decrement: A tensor of same shape as `x`.
-
-        # Returns
-            The variable `x` updated.
-        """
     return tf.assign_sub(x, decrement)
 
 
 def moving_average_update(x, value, momentum):
-    """Compute the moving average of a variable.
-
-    # Arguments
-        x: A Variable.
-        value: A tensor with the same shape as `variable`.
-        momentum: The moving average momentum.
-
-    # Returns
-        An Operation to update the variable."""
     return moving_averages.assign_moving_average(
         x, value, momentum, zero_debias=False)
 
@@ -990,16 +900,6 @@ def batch_dot(x, y, axes=None):
     """
     if isinstance(axes, int):
         axes = (axes, axes)
-    x_ndim = ndim(x)
-    y_ndim = ndim(y)
-    if x_ndim > y_ndim:
-        diff = x_ndim - y_ndim
-        y = tf.reshape(y, tf.concat([tf.shape(y), [1] * (diff)], axis=0))
-    elif y_ndim > x_ndim:
-        diff = y_ndim - x_ndim
-        x = tf.reshape(x, tf.concat([tf.shape(x), [1] * (diff)], axis=0))
-    else:
-        diff = 0
     if ndim(x) == 2 and ndim(y) == 2:
         if axes[0] == axes[1]:
             out = tf.reduce_sum(tf.multiply(x, y), axes[0])
@@ -1013,12 +913,6 @@ def batch_dot(x, y, axes=None):
             adj_x = None
             adj_y = None
         out = tf.matmul(x, y, adjoint_a=adj_x, adjoint_b=adj_y)
-    if diff:
-        if x_ndim > y_ndim:
-            idx = x_ndim + y_ndim - 3
-        else:
-            idx = x_ndim - 1
-        out = tf.squeeze(out, list(range(idx, idx + diff)))
     if ndim(out) == 1:
         out = expand_dims(out, 1)
     return out
@@ -1168,34 +1062,6 @@ def prod(x, axis=None, keepdims=False):
     return tf.reduce_prod(x, reduction_indices=axis, keep_dims=keepdims)
 
 
-def cumsum(x, axis=0):
-    """Cumulative sum of the values in a tensor, alongside the specified axis.
-
-    # Arguments
-        x: A tensor or variable.
-        axis: An integer, the axis to compute the sum.
-
-    # Returns
-        A tensor of the cumulative sum of values of `x` along `axis`.
-    """
-    axis = _normalize_axis(axis, ndim(x))
-    return tf.cumsum(x, axis=axis)
-
-
-def cumprod(x, axis=0):
-    """Cumulative product of the values in a tensor, alongside the specified axis.
-
-    # Arguments
-        x: A tensor or variable.
-        axis: An integer, the axis to compute the product.
-
-    # Returns
-        A tensor of the cumulative product of values of `x` along `axis`.
-    """
-    axis = _normalize_axis(axis, ndim(x))
-    return tf.cumprod(x, axis=axis)
-
-
 def var(x, axis=None, keepdims=False):
     """Variance of a tensor, alongside the specified axis.
 
@@ -1270,7 +1136,8 @@ def any(x, axis=None, keepdims=False):
     """
     axis = _normalize_axis(axis, ndim(x))
     x = tf.cast(x, tf.bool)
-    return tf.reduce_any(x, reduction_indices=axis, keep_dims=keepdims)
+    x = tf.reduce_any(x, reduction_indices=axis, keep_dims=keepdims)
+    return tf.cast(x, tf.uint8)
 
 
 def all(x, axis=None, keepdims=False):
@@ -1286,7 +1153,8 @@ def all(x, axis=None, keepdims=False):
     """
     axis = _normalize_axis(axis, ndim(x))
     x = tf.cast(x, tf.bool)
-    return tf.reduce_all(x, reduction_indices=axis, keep_dims=keepdims)
+    x = tf.reduce_all(x, reduction_indices=axis, keep_dims=keepdims)
+    return tf.cast(x, tf.uint8)
 
 
 def argmax(x, axis=-1):
@@ -1378,28 +1246,6 @@ def log(x):
         A tensor.
     """
     return tf.log(x)
-
-
-def logsumexp(x, axis=None, keepdims=False):
-    """Computes log(sum(exp(elements across dimensions of a tensor))).
-
-    This function is more numerically stable than log(sum(exp(x))).
-    It avoids overflows caused by taking the exp of large inputs and
-    underflows caused by taking the log of small inputs.
-
-    # Arguments
-        x: A tensor or variable.
-        axis: An integer, the axis to reduce over.
-        keepdims: A boolean, whether to keep the dimensions or not.
-            If `keepdims` is `False`, the rank of the tensor is reduced
-            by 1. If `keepdims` is `True`, the reduced dimension is
-            retained with length 1.
-
-    # Returns
-        The reduced tensor.
-    """
-    axis = _normalize_axis(axis, ndim(x))
-    return tf.reduce_logsumexp(x, reduction_indices=axis, keep_dims=keepdims)
 
 
 def round(x):
@@ -1606,7 +1452,7 @@ def normalize_batch_in_training(x, gamma, beta,
     """
     mean, var = tf.nn.moments(x, reduction_axes,
                               shift=None, name=None, keep_dims=False)
-    if sorted(reduction_axes) == list(range(ndim(x)))[:-1]:
+    if sorted(reduction_axes) == range(ndim(x))[:-1]:
         normed = tf.nn.batch_normalization(x, mean, var,
                                            beta, gamma,
                                            epsilon)
@@ -2302,8 +2148,8 @@ def rnn(step_function, inputs, initial_states,
             (no time dimension),
             containing the initial values for the states used in
             the step function.
-        go_backwards: boolean. If True, do the iteration over the time
-            dimension in reverse order and return the reversed sequence.
+        go_backwards: boolean. If True, do the iteration over
+            the time dimension in reverse order.
         mask: binary tensor with shape `(samples, time, 1)`,
             with a zero for every element that is masked.
         constants: a list of constant values passed at each step.
@@ -2394,9 +2240,9 @@ def rnn(step_function, inputs, initial_states,
                 states = return_states
                 successive_outputs.append(output)
                 successive_states.append(states)
-            last_output = successive_outputs[-1]
-            new_states = successive_states[-1]
-            outputs = tf.stack(successive_outputs)
+                last_output = successive_outputs[-1]
+                new_states = successive_states[-1]
+                outputs = tf.stack(successive_outputs)
         else:
             for inp in input_list:
                 output, states = step_function(inp, states + constants)
@@ -2856,14 +2702,13 @@ def in_top_k(predictions, targets, k):
     """Returns whether the `targets` are in the top `k` `predictions`.
 
     # Arguments
-        predictions: A tensor of shape `(batch_size, classes)` and type `float32`.
-        targets: A 1D tensor of length `batch_size` and type `int32` or `int64`.
+        predictions: A tensor of shape `batch_size` x classes and type `float32`.
+        targets: A tensor of shape batch_size and type `int32` or `int64`.
         k: An `int`, number of top elements to consider.
 
     # Returns
-        A 1D tensor of length `batch_size` and type `bool`.
-        `output[i]` is `True` if `predictions[i, targets[i]]` is within top-`k`
-        values of `predictions[i]`.
+        A tensor of shape `batch_size` and type `bool`. `output_i` is `True` if
+        `targets_i` is within top-k values of `predictions_i`
     """
     return tf.nn.in_top_k(predictions, targets, k)
 
@@ -2871,16 +2716,6 @@ def in_top_k(predictions, targets, k):
 # CONVOLUTIONS
 
 def _preprocess_deconv_output_shape(x, shape, data_format):
-    """Get the output_shape for the deconvolution.
-
-    # Arguments
-        x: input tensor.
-        shape: output shape.
-        data_format: string, one of 'channels_last', 'channels_first'.
-
-    # Returns
-        The output shape.
-    """
     if data_format == 'channels_first':
         shape = (shape[0], shape[2], shape[3], shape[1])
 
@@ -2891,15 +2726,6 @@ def _preprocess_deconv_output_shape(x, shape, data_format):
 
 
 def _preprocess_conv2d_input(x, data_format):
-    """Transpose and cast the input before the conv2d.
-
-    # Arguments
-        x: input tensor.
-        data_format: string, one of 'channels_last', 'channels_first'.
-
-    # Returns
-        A tensor.
-    """
     if dtype(x) == 'float64':
         x = tf.cast(x, 'float32')
     if data_format == 'channels_first':
@@ -2912,15 +2738,6 @@ def _preprocess_conv2d_input(x, data_format):
 
 
 def _preprocess_conv3d_input(x, data_format):
-    """Transpose and cast the input before the conv3d.
-
-    # Arguments
-        x: input tensor.
-        data_format: string, one of 'channels_last', 'channels_first'.
-
-    # Returns
-        A tensor.
-    """
     if dtype(x) == 'float64':
         x = tf.cast(x, 'float32')
     if data_format == 'channels_first':
@@ -2929,15 +2746,6 @@ def _preprocess_conv3d_input(x, data_format):
 
 
 def _preprocess_conv2d_kernel(kernel, data_format):
-    """Transpose and cast the kernel before the conv2d.
-
-    # Arguments
-        kernel: kernel tensor.
-        data_format: string, one of 'channels_last', 'channels_first'.
-
-    # Returns
-        A tensor.
-    """
     if dtype(kernel) == 'float64':
         kernel = tf.cast(kernel, 'float32')
     if data_format == 'channels_first':
@@ -2946,15 +2754,6 @@ def _preprocess_conv2d_kernel(kernel, data_format):
 
 
 def _preprocess_conv3d_kernel(kernel, data_format):
-    """Transpose and cast the kernel before the conv3d.
-
-    # Arguments
-        kernel: kernel tensor.
-        data_format: string, one of 'channels_last', 'channels_first'.
-
-    # Returns
-        A tensor.
-    """
     if dtype(kernel) == 'float64':
         kernel = tf.cast(kernel, 'float32')
     if data_format == 'channels_first':
@@ -2963,37 +2762,16 @@ def _preprocess_conv3d_kernel(kernel, data_format):
 
 
 def _preprocess_padding(padding):
-    """Convert keras' padding to tensorflow's padding.
-
-    # Arguments
-        padding: string, one of 'same' , 'valid'
-
-    # Returns
-        a string, one of 'SAME', 'VALID'.
-
-    # Raises
-        ValueError if invalid `padding'`
-    """
     if padding == 'same':
         padding = 'SAME'
     elif padding == 'valid':
         padding = 'VALID'
     else:
-        raise ValueError('Invalid padding:', padding)
+        raise ValueError('Invalid border mode:', padding)
     return padding
 
 
 def _postprocess_conv2d_output(x, data_format):
-    """Transpose and cast the output from conv2d if needed.
-
-    # Arguments
-        x: A tensor.
-        data_format: string, one of "channels_last", "channels_first".
-
-    # Returns
-        A tensor.
-    """
-
     if data_format == 'channels_first':
         x = tf.transpose(x, (0, 3, 1, 2))
 
@@ -3003,15 +2781,6 @@ def _postprocess_conv2d_output(x, data_format):
 
 
 def _postprocess_conv3d_output(x, data_format):
-    """Transpose and cast the output from conv3d if needed.
-
-        # Arguments
-            x: A tensor.
-            data_format: string, one of "channels_last", "channels_first".
-
-        # Returns
-            A tensor.
-        """
     if data_format == 'channels_first':
         x = tf.transpose(x, (0, 4, 1, 2, 3))
 
@@ -3247,6 +3016,7 @@ def pool2d(x, pool_size, strides=(1, 1),
         x = tf.nn.avg_pool(x, pool_size, strides, padding=padding)
     elif pool_mode == 'fractionalMax':
         x = tf.nn.fractional_max_pool(x, pool_size, overlapping=True)
+        x = x[0]
     else:
         raise ValueError('Invalid pooling mode:', pool_mode)
 
@@ -3548,19 +3318,19 @@ def ctc_decode(y_pred, input_length, greedy=True, beam_width=100,
 
 # HIGH ORDER FUNCTIONS
 
-def map_fn(fn, elems, name=None, dtype=None):
+def map_fn(fn, elems, name=None):
     """Map the function fn over the elements elems and return the outputs.
 
     # Arguments
         fn: Callable that will be called upon each element in elems
         elems: tensor
         name: A string name for the map node in the graph
-        dtype: Output data type.
 
     # Returns
-        Tensor with dtype `dtype`.
+        Tensor with first dimension equal to the elems and second depending on
+        fn
     """
-    return tf.map_fn(fn, elems, name=name, dtype=dtype)
+    return tf.map_fn(fn, elems, name=name)
 
 
 def foldl(fn, elems, initializer=None, name=None):
@@ -3574,7 +3344,7 @@ def foldl(fn, elems, initializer=None, name=None):
         name: A string name for the foldl node in the graph
 
     # Returns
-        Tensor with same type and shape as `initializer`.
+        Same type and shape as initializer
     """
     return tf.foldl(fn, elems, initializer=initializer, name=name)
 
